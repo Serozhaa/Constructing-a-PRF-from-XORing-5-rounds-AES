@@ -103,8 +103,8 @@ def sbox_with_key(x, input_diff, key, key_two): #DDT for the simplified PRF whil
 
 
 def sbox_with_given_key(x,input_diff): # #DDT for the simplified PRF with given keys, the keys cannot be reconstructed from the ddt (Figure 4.1)
-    key=12
-    key_two= 40
+    key=40
+    key_two= 22
     return (Sbox[x ^ key] ^ Sbox_inv[x^ key_two]) ^ (Sbox[x ^ input_diff^key]^Sbox_inv[x^input_diff^ key_two])
 
 display_ddt(create_ddt(sbox_with_given_key))  #example usage
