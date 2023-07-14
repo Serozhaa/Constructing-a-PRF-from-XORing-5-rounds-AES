@@ -37,8 +37,8 @@ Sbox_inv = (
 def create_ddt(function): #function=the cipher, for example Sbox[x]
     ddt = [[0] * 256 for _ in range(256)]
 
-    for input_diff in range(256):
-        for x in range(256):
+    for x in range(256):
+        for input_diff in range(256):
             output_xor = function(x,input_diff)
             ddt[input_diff][output_xor] += 1
 
@@ -90,21 +90,120 @@ def count_and_sort_values(ddt):
 
     return sorted_values
 
-def sbox_enc(x, key): #using the regular sbox to compute the DDT for one sbox in order to prove the security of sboxes
+def sbox_enc(x, input_diff):
     key=22
-    return Sbox[x^key]
+    return Sbox[x^key]^Sbox[x^key^input_diff]
 
-def sbox_dec(x, key): #same as above, but using the inverse sbox
+def sbox_dec(x, key):
     key=22
     return Sbox_inv[x^key]
 
-def sbox_with_key(x, input_diff, key, key_two): #DDT for the simplified PRF while also iterating over all keys
+def write_ddt_to_file(file_path, function):
+    ddt = create_ddt(function)
+    with open(file_path, 'w') as file:
+        for row in ddt:
+            line = ','.join(map(str, row))
+            file.write(line + '\n')
+write_ddt_to_file("sbox_with_key_ddt.txt", sbox_enc)
+
+def count_and_sort_values_from_file(file_path):
+    value_counts = {}
+
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            values = line.strip().split(',')
+            for value in values:
+                if value:
+                    value = int(value)
+                    if value in value_counts:
+                        value_counts[value] += 1
+                    else:
+                        value_counts[value] = 1
+
+    sorted_values = sorted(value_counts.items(), key=lambda x: x[1], reverse=True)
+
+    return sorted_values
+
+def sbox_with_key(x, input_diff, key, key_two):
     return (Sbox[x ^ key] ^ Sbox_inv[x ^ key_two]) ^ (Sbox[x ^ input_diff ^ key] ^ Sbox_inv[x ^ input_diff ^ key_two])
 
 
-def sbox_with_given_key(x,input_diff): # #DDT for the simplified PRF with given keys, the keys cannot be reconstructed from the ddt (Figure 4.1)
-    key=40
-    key_two= 22
+def sbox_with_given_key(x,input_diff):
+    key=7
+    key_two= 3
     return (Sbox[x ^ key] ^ Sbox_inv[x^ key_two]) ^ (Sbox[x ^ input_diff^key]^Sbox_inv[x^input_diff^ key_two])
 
-display_ddt(create_ddt(sbox_with_given_key))  #example usage
+import matplotlib.pyplot as plt
+import numpy as np
+
+
+def create_ddt_heatmap(ddt):
+    fig, ax = plt.subplots()
+    im = ax.imshow(ddt, cmap='hot')
+
+    # Add colorbar
+    cbar = ax.figure.colorbar(im, ax=ax)
+
+    # Set tick labels and axes labels
+    ax.set_xticks(np.arange(256))
+    ax.set_yticks(np.arange(256))
+    ax.set_xticklabels(np.arange(256))
+    ax.set_yticklabels(np.arange(256))
+
+    # Loop over data dimensions and create text annotations
+    for i in range(256):
+        for j in range(256):
+            text = ax.text(j, i, ddt[i][j], ha="center", va="center", color="w")
+
+    ax.set_title("Difference Distribution Table Heatmap")
+    fig.tight_layout()
+    plt.show()
+
+
+
+def create_heatmap_from_file(file_path):
+    # Daten aus der Textdatei laden
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+        data = []
+        for line in lines:
+            # Ungültige Zeichen ignorieren und nur gültige Ganzzahlen verwenden
+            values = [int(val) for val in line.strip().split(',') if val.strip().isdigit()]
+            data.append(values)
+
+    # Größe der Tabelle bestimmen
+    num_rows = len(data)
+    num_cols = len(data[0])
+
+    # Höchsten Wert bestimmen
+    max_value = np.max(data)
+
+    # Spektrum der Heatmap anpassen
+    vmax = min(max_value, 4)  # Maximalwert auf 4 begrenzen
+
+    # Position [1][1] finden
+    value = data[1][1]
+
+    # Heatmap erstellen
+    fig, ax = plt.subplots()
+    im = ax.imshow(data, cmap='binary', vmin=0, vmax=vmax)
+    plt.xlabel("Input differences ", weight="bold", size=24)
+    plt.ylabel("Output differences", weight="bold", size=24)
+
+    # Colorbar hinzufügen
+    cbar = ax.figure.colorbar(im, ax=ax)
+
+    # Textannotation für [1][1] hinzufügen
+    text = ax.text(1, 1, f'Value: {value}', ha="center", va="center", color="w")
+
+    #ax.set_title("Heatmap der Tabelle")
+    fig.tight_layout()
+    plt.show()
+
+
+#write_ddt_to_file("simplified_prf_ddt.txt",sbox_with_given_key)
+#print(count_and_sort_values_from_file("simplified_prf_ddt.txt"))
+#create_heatmap_from_file("simplified_prf_ddt.txt")
+write_ddt_to_file("aes_sbox_ddt",sbox_enc)
+create_heatmap_from_file("aes_sbox_ddt")
