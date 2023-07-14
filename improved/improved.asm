@@ -28,8 +28,6 @@ _start:
     aeskeygenassist xmm11, xmm7, 0x08
     aeskeygenassist xmm12, xmm7, 0x10
 
-
-    movdqu xmm0, [plaintext]
     ; Perform AES encryption
     aesenc xmm0, xmm2       ; Round 1
     aesenc xmm0, xmm3       ; Round 2
