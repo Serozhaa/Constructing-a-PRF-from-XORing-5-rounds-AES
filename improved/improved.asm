@@ -10,10 +10,11 @@ section .text
 _start:
     ; Load plaintext and key into registers
     movdqu xmm0, [plaintext]
+    movdqu xmm1, [firstkey]
+    movdqu xmm7, [secondkey]
+    movdqu xmm13, [zerokey]
 
     ;prepare the key expansion for the encryption keys
-    movdqu xmm1, [firstkey]
-
     aeskeygenassist xmm2, xmm1, 0x01
     aeskeygenassist xmm3, xmm1, 0x02
     aeskeygenassist xmm4, xmm1, 0x04
@@ -21,15 +22,12 @@ _start:
     aeskeygenassist xmm6, xmm1, 0x10
 
    ;prepare the key expansion for the decryption keys
-    movdqu xmm7, [secondkey]
-
     aeskeygenassist xmm8, xmm7, 0x01
-    aeskeygenassist xmm9, xmm8, 0x02
-    aeskeygenassist xmm10, xmm9, 0x04
-    aeskeygenassist xmm11, xmm10, 0x08
-    aeskeygenassist xmm12, xmm11, 0x10
+    aeskeygenassist xmm9, xmm7, 0x02
+    aeskeygenassist xmm10, xmm7, 0x04
+    aeskeygenassist xmm11, xmm7, 0x08
+    aeskeygenassist xmm12, xmm7, 0x10
 
-    movdqu xmm13, [zerokey]
 
     movdqu xmm0, [plaintext]
     ; Perform AES encryption
@@ -41,6 +39,7 @@ _start:
 
     movdqu xmm14, xmm0      ; Store the output for XOR
  
+    movdqu xmm0, [plaintext]
    ;add invmixcolumns for more security as an extra step
     aesenclast xmm0, xmm13
     aesdec xmm0, xmm13
@@ -52,9 +51,8 @@ _start:
     aesdec xmm0, xmm11      ; Round 4
     aesdeclast xmm0, xmm12  ; Round 5
 
-    movdqu xmm15, xmm0      ; Store the output for XOR
     ; xxm14 will contain the output to the prf
-    xorps xmm14, xmm15
+    xorps xmm14, xmm0
 
     mov eax, 1          ; System call number for exit
     xor ebx, ebx        ; Exit status 0
